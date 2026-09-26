@@ -54,3 +54,25 @@ def test_sqlite_does_not_keep_identifier_values(tmp_path: Path, scrubber):
     assert "MARKER-CLINICB" in other["scrubbed_text"]
     clinic_a = (tmp_path / "tenants" / "clinic-a.sqlite").read_bytes()
     assert b"MARKER-CLINICB" not in clinic_a
+
+
+def test_credit_card_never_stored_in_sqlite(tmp_path: Path, scrubber):
+    reset_stores()
+    text = (
+        "Patient Jane Doe (DOB 1990-05-15) paid with card 4111-1111-1111-1111 "
+        "and backup card 5500-0000-0000-0004. Phone 555-123-4567."
+    )
+    result = ingest_note(
+        "clinic-a",
+        text,
+        note_id="card-test",
+        scrubber=scrubber,
+        data_dir=tmp_path,
+        mask_medications=True,
+    )
+    assert "4111-1111-1111-1111" not in result["scrubbed_text"]
+    assert "5500-0000-0000-0004" not in result["scrubbed_text"]
+    blob = (tmp_path / "tenants" / "clinic-a.sqlite").read_bytes()
+    assert b"4111-1111-1111-1111" not in blob
+    assert b"5500-0000-0000-0004" not in blob
+    assert b"4111" not in blob

@@ -21,21 +21,11 @@ def test_pattern_identifiers_are_removed(scrubber):
     assert set(findings[0].public()) == {"entity_type", "start", "end", "score", "recognizer"}
 
 
-def test_credit_card_is_detected_when_the_gateway_asks(scrubber):
-    results = scrubber._analyzer.analyze(
-        text="Copay card 4111-1111-1111-1111 was entered on the slip.",
-        language="en",
-        entities=["CREDIT_CARD"],
-        score_threshold=0.4,
-    )
-    assert any(result.entity_type == "CREDIT_CARD" for result in results)
-
-
-def test_credit_card_is_outside_the_ingest_allowlist(scrubber):
+def test_credit_card_is_caught_at_ingest(scrubber):
     text = "Copay card 4111-1111-1111-1111 was entered on the slip."
     scrubbed, findings = scrubber.scrub(text, mask_medications=True)
-    assert "4111-1111-1111-1111" in scrubbed
-    assert all(item.entity_type != "CREDIT_CARD" for item in findings)
+    assert "4111-1111-1111-1111" not in scrubbed
+    assert any(item.entity_type == "CREDIT_CARD" for item in findings)
 
 
 def test_medication_policy(scrubber):
@@ -57,3 +47,35 @@ def test_hctz_is_not_in_the_lexicon(scrubber):
     scrubbed, findings = scrubber.scrub("Plan: continue HCTZ as previously tolerated.", mask_medications=True)
     assert "HCTZ" in scrubbed
     assert all(item.entity_type != "MEDICATION" for item in findings)
+
+
+def test_us_street_address_recognizer(scrubber):
+    for address in (
+        "18 Cedar Ave",
+        "7 Pine St",
+        "12 Elm St",
+        "300 King St",
+        "640 Broad St",
+        "77 Grove Ave",
+        "15 Academy Rd",
+        "9 Dock St",
+        "23 Lantern Ln",
+        "810 Ridge Rd",
+    ):
+        scrubbed, findings = scrubber.scrub(f"Lives at {address} in Virginia.", mask_medications=False)
+        assert address not in scrubbed, f"{address} should be masked"
+        types = {item.entity_type for item in findings}
+        assert "US_STREET_ADDRESS" in types or "LOCATION" in types, f"{address} should trigger address recognition"
+
+
+def test_street_address_common_patterns(scrubber):
+    for address, city_state in [
+        ("123 Main Street", "Springfield, IL"),
+        ("456 Oak Avenue", "Portland, OR"),
+        ("789 First Blvd", "Austin, TX"),
+        ("1 Park Place", "Miami, FL"),
+        ("50 Harbor Way", "Seattle, WA"),
+    ]:
+        text = f"Patient lives at {address}, {city_state}."
+        scrubbed, _findings = scrubber.scrub(text, mask_medications=False)
+        assert address not in scrubbed, f"{address} should be masked"

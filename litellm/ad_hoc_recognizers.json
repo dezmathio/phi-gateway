@@ -11,5 +11,18 @@
       }
     ],
     "context": ["mrn", "record"]
+  },
+  {
+    "name": "US Street Address",
+    "supported_language": "en",
+    "supported_entity": "US_STREET_ADDRESS",
+    "patterns": [
+      {
+        "name": "numbered_street",
+        "regex": "\\b\\d{1,5}\\s+[A-Z][a-zA-Z]{1,20}(?:\\s+[A-Z][a-zA-Z]{1,15})?\\s+(?:St(?:reet)?|Ave(?:nue)?|Rd|Road|Dr(?:ive)?|Ln|Lane|Blvd|Boulevard|Ct|Court|Way|Pl(?:ace)?|Cir(?:cle)?|Ter(?:race)?|Pkwy|Parkway|Hwy|Highway|Sq|Square|Trl|Trail|Row|Pass|Loop|Aly|Alley)\\b",
+        "score": 0.92
+      }
+    ],
+    "context": ["address", "lives", "street"]
   }
 ]
