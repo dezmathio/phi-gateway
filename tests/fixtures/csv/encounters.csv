@@ -1,0 +1,21 @@
+Id,START,PATIENT,ENCOUNTERCLASS,DESCRIPTION
+4514ca07-9caa-598b-b73a-b87a1b6c1293,2024-01-01,586709f8-b43d-5f0b-ab31-b45e6f5510b7,ambulatory,hypertension follow-up
+e6bbdf1b-ecca-5d51-9f4b-fe0cb80a5009,2024-02-02,d205b4f1-31bd-54ef-b371-038ddd3ee613,ambulatory,diabetes follow-up
+a0a205a9-eb51-5d43-91e7-17ffece0486d,2024-03-03,103a0aaa-a888-58cd-871c-eb0092fc1f5b,emergency,asthma exacerbation
+56050068-9117-5ec1-8160-e9f58adcc9bb,2024-04-04,76a62df9-e126-589d-8d46-ae5e1f71f554,ambulatory,bronchitis visit
+6253f5f1-c26f-53b1-a119-3685101b2f84,2024-05-05,a9c37571-4b93-51be-8e82-f7a281a7b680,ambulatory,rhinitis visit
+0ecb0595-850b-5746-b498-77f1f2f452d0,2024-06-06,ed0550c2-91a8-53ab-b5eb-179785615a8e,virtual,anxiety follow-up
+4452645f-0d6e-5f02-9c84-826860225ce9,2024-07-07,4a7adcfa-5c51-544c-8c6a-4651e3179ba4,ambulatory,thyroid follow-up
+98988d85-c38c-5c97-9564-28f4f6388d8c,2024-08-08,06aefca9-979d-5db2-9bc6-9a3f3627c966,wellness,sick visit
+dde79d82-fc31-5b0e-932e-2fba5dfdcfe3,2024-09-09,1ce825df-3b2d-586d-a6c1-dd4e74eee079,ambulatory,hypertension follow-up
+91b9e64f-bde4-518a-b78e-0026c6b09c5c,2024-01-10,27fa02c6-7cf9-5ba6-9068-87ee9c69e7b3,ambulatory,depression follow-up
+e7dbe62c-7cab-5d1e-994a-cd829bd37e49,2024-02-11,fff69486-3067-5d49-ba34-e6412a70dcd5,ambulatory,weight and lipids visit
+7c6f2796-bb0e-532c-a29d-a0164724a505,2024-03-12,76bc2f42-76cc-5df8-bad9-72a270f0eaae,virtual,dermatology check
+f2727eeb-ce71-51c0-90dc-b939755fda17,2024-04-13,ca7a9d2e-7870-585c-8ab8-fdc1711fd942,emergency,migraine visit
+71209c7b-527a-562a-a098-44180f4b3224,2024-05-14,2d32eb48-2bee-59c2-9049-2d198c92031f,ambulatory,anemia follow-up
+eb7a86e2-acf7-5c36-9fa1-ce9a2e4444fb,2024-06-15,1c4f388c-e030-592a-81a6-3090f89a0d44,ambulatory,reflux follow-up
+8baeef3b-fecf-5bef-9cb5-2ce471d9c68e,2024-07-16,53cd1a7a-ec10-5138-8100-8aa6aca905d7,wellness,well child visit
+3c073d31-c7a0-5795-81aa-f411fc91e72f,2024-08-17,c3983502-f596-55ac-8a73-a86b1bc1fa60,ambulatory,back pain visit
+52da4e86-8cad-5417-b440-f717f294ca7e,2024-09-18,aa345a3f-908b-5cbb-8bfc-a3a956a61ca2,ambulatory,joint pain visit
+6487c692-f329-5f6d-b2d7-4ec9aad6ef96,2024-01-19,adcda375-eef7-5351-9b94-ac6cd3e6ac20,ambulatory,sinusitis visit
+0dfcee63-75ac-5869-8dfc-12d92c65b8dd,2024-02-20,a9a02722-de5a-5141-b39e-f58b7629c54d,emergency,pneumonia visit

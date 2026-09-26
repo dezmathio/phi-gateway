@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PHI Gateway</title>
+  <style>
+    :root {
+      --bg: #e6e0d4;
+      --ink: #1b1914;
+      --muted: #5e584e;
+      --panel: #f7f4ee;
+      --line: #d3cbbd;
+      --accent: #0e5c56;
+      --accent-ink: #f4f1ea;
+      --warn: #8c3428;
+      --shadow: 0 1px 0 rgba(255,255,255,.7) inset;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 400px at 10% -10%, #f3ecdf 0%, transparent 50%),
+        var(--bg);
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-end;
+      padding: 22px 28px 8px;
+    }
+    .mark {
+      font-size: 12px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    h1 {
+      font-family: Palatino, "Palatino Linotype", Georgia, serif;
+      font-size: 34px;
+      font-weight: 600;
+      letter-spacing: -.03em;
+      margin: 4px 0 0;
+    }
+    .lede { max-width: 640px; color: var(--muted); margin: 6px 0 0; line-height: 1.4; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 28px 14px;
+    }
+    button, .check {
+      font: inherit;
+    }
+    button {
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    button.warn { border-color: var(--warn); color: var(--warn); }
+    button:disabled { opacity: .55; cursor: wait; }
+    button.active { outline: 2px solid var(--accent); }
+    .check { color: var(--muted); display: flex; gap: 6px; align-items: center; }
+    label.q { display: flex; flex-direction: column; gap: 4px; padding: 0 28px 12px; color: var(--muted); font-size: 13px; }
+    input[type="text"] {
+      font: inherit;
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .panels {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      padding: 0 20px;
+      align-items: stretch;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      min-height: 460px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+    .panel h2 {
+      margin: 0;
+      padding: 12px 12px 0;
+      font-size: 13px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .panel h2 span { color: var(--accent); margin-right: 6px; }
+    .hint { color: var(--muted); font-size: 12px; padding: 4px 12px 0; min-height: 32px; }
+    .body { padding: 10px 12px 12px; overflow: auto; flex: 1; }
+    textarea, pre {
+      width: 100%;
+      height: 100%;
+      min-height: 360px;
+      margin: 0;
+      border: 0;
+      resize: none;
+      background: transparent;
+      color: inherit;
+      font-family: "ui-monospace", "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    textarea:focus { outline: none; }
+    .caught { font-size: 14.5px; line-height: 1.55; }
+    mark {
+      border-radius: 3px;
+      padding: 0 2px;
+      color: inherit;
+      position: relative;
+    }
+    mark:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + 6px);
+      background: #1b1914;
+      color: #f7f4ee;
+      font: 11px/1.3 "Segoe UI", sans-serif;
+      padding: 5px 7px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 3;
+    }
+    .e-PERSON { background: #ffe7a3; }
+    .e-DATE_TIME { background: #c9e4f5; }
+    .e-US_SSN { background: #f6c7c1; }
+    .e-PHONE_NUMBER { background: #c6efe6; }
+    .e-EMAIL_ADDRESS { background: #e3d4f5; }
+    .e-LOCATION { background: #d5ecc4; }
+    .e-MRN { background: #f8d7b0; }
+    .e-MEDICATION { background: #f6d0e4; }
+    .e-CREDIT_CARD { background: #f3b7ae; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
+    .legend i { font-style: normal; font-size: 11px; border-radius: 999px; padding: 2px 7px; }
+    .banner {
+      margin: 0 12px 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #fde8e2;
+      color: var(--warn);
+      font-size: 13px;
+    }
+    .reply { font-size: 16px; line-height: 1.45; }
+    .denied {
+      border: 1px solid var(--warn);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fdf3f1;
+    }
+    .denied strong { display: block; font-size: 28px; color: var(--warn); }
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 14px 20px 20px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    footer b { color: var(--ink); font-weight: 600; }
+    @media (max-width: 1100px) {
+      .panels { grid-template-columns: 1fr 1fr; }
+      header { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 720px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="mark">PHI Gateway</div>
+      <h1>What the model is allowed to see</h1>
+      <p class="lede">Synthetic visit notes are scrubbed before they are stored, then scrubbed again at the LiteLLM gateway. Each clinic has its own key, its own spend cap, and its own database.</p>
+    </div>
+  </header>
+  <div class="controls">
+    <button type="button" id="tab-a" class="active">Clinic A</button>
+    <button type="button" id="tab-b">Clinic B</button>
+    <label class="check"><input type="checkbox" id="mask-meds" /> Mask medications at ingest</label>
+    <button type="button" class="primary" id="run">Run pipeline</button>
+    <button type="button" id="gap">Load credit-card miss</button>
+    <button type="button" class="warn" id="cross">Try Clinic A’s key on Clinic B</button>
+  </div>
+  <label class="q">Question sent with the scrubbed chart
+    <input id="question" type="text" value="What problem was this visit for, and what treatment was continued? Answer in two sentences. Keep any angle-bracket placeholders as written." />
+  </label>
+  <section class="panels">
+    <article class="panel">
+      <h2><span>01</span> Raw JSON</h2>
+      <p class="hint">Editable. This text is not written to the tenant database.</p>
+      <div class="body"><textarea id="raw" spellcheck="false"></textarea></div>
+    </article>
+    <article class="panel">
+      <h2><span>02</span> Caught at ingest</h2>
+      <p class="hint" id="caught-hint">Presidio spans, before anything is stored.</p>
+      <div class="legend" id="legend"></div>
+      <div class="body caught" id="caught">Run the pipeline to mark what ingest caught.</div>
+    </article>
+    <article class="panel">
+      <h2><span>03</span> Sent to the model</h2>
+      <p class="hint" id="sent-hint">After ingest and the gateway guardrail.</p>
+      <div id="added"></div>
+      <div class="body"><pre id="sent">The exact messages are shown here after a run.</pre></div>
+    </article>
+    <article class="panel">
+      <h2><span>04</span> Model reply</h2>
+      <p class="hint" id="reply-hint">Returned through the tenant’s virtual key.</p>
+      <div class="body reply" id="reply">The reply shows up here.</div>
+    </article>
+  </section>
+  <footer>
+    <div id="log">Key, model, tokens, and cost appear after a call.</div>
+    <div>Synthetic Synthea notes only. This demonstrates the pattern. It is not a HIPAA certification.</div>
+  </footer>
+  <script>
+    const TYPES = ["PERSON","DATE_TIME","US_SSN","PHONE_NUMBER","EMAIL_ADDRESS","LOCATION","MRN","MEDICATION","CREDIT_CARD"];
+    const state = { tenants: [], samples: {}, gap: null, current: "clinic-a" };
+
+    const raw = document.getElementById("raw");
+    const caught = document.getElementById("caught");
+    const sent = document.getElementById("sent");
+    const reply = document.getElementById("reply");
+    const log = document.getElementById("log");
+    const added = document.getElementById("added");
+    const maskMeds = document.getElementById("mask-meds");
+    const question = document.getElementById("question");
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[ch]));
+    }
+
+    function tenant(id) { return state.tenants.find((item) => item.id === id); }
+
+    function showSample(id) {
+      state.current = id;
+      document.getElementById("tab-a").classList.toggle("active", id === "clinic-a");
+      document.getElementById("tab-b").classList.toggle("active", id === "clinic-b");
+      const meta = tenant(id);
+      if (meta) maskMeds.checked = !!meta.mask_medications;
+      const sample = state.samples[id];
+      raw.value = JSON.stringify(sample || { note_id: "paste", tenant_id: id, text: "" }, null, 2);
+    }
+
+    function legend(findings) {
+      const present = new Set((findings || []).map((f) => f.entity_type));
+      document.getElementById("legend").innerHTML = TYPES.filter((t) => present.has(t)).map(
+        (t) => `<i class="e-${t}">${t}</i>`
+      ).join("");
+    }
+
+    function highlight(text, findings) {
+      const sorted = [...(findings || [])].sort((a, b) => a.start - b.start);
+      let html = "";
+      let cursor = 0;
+      for (const finding of sorted) {
+        if (finding.start < cursor || finding.end > text.length || finding.start < 0) continue;
+        html += esc(text.slice(cursor, finding.start));
+        const tip = `${finding.entity_type} · ${Number(finding.score).toFixed(2)} · ${finding.recognizer}`;
+        html += `<mark class="e-${esc(finding.entity_type)}" data-tip="${esc(tip)}">${esc(text.slice(finding.start, finding.end))}</mark>`;
+        cursor = finding.end;
+      }
+      html += esc(text.slice(cursor));
+      return html;
+    }
+
+    function renderLog(data, alias, redacted) {
+      const row = data.log || {};
+      const cost = row.cost == null ? "n/a" : `$${Number(row.cost).toFixed(6)}`;
+      const spend = row.spend == null ? "n/a" : `$${Number(row.spend).toFixed(4)}`;
+      const cap = row.max_budget == null ? "$5" : `$${Number(row.max_budget).toFixed(2)}`;
+      const tokens = `${row.prompt_tokens ?? "–"} prompt + ${row.completion_tokens ?? "–"} completion`;
+      log.innerHTML = `<b>${esc(alias || "")}</b> ${esc(redacted || "")} · model <b>${esc(row.model || "—")}</b> · ${esc(tokens)} · cost ${esc(cost)} · spend ${esc(spend)} / ${esc(cap)}`;
+    }
+
+    async function run() {
+      let parsed;
+      try { parsed = JSON.parse(raw.value); }
+      catch (err) {
+        reply.textContent = "Panel 1 is not valid JSON.";
+        return;
+      }
+      const meta = tenant(state.current);
+      if (!meta || !meta.key) {
+        reply.textContent = "No virtual key yet. Start the stack so LiteLLM can issue Clinic A and Clinic B keys.";
+        return;
+      }
+      document.getElementById("run").disabled = true;
+      reply.textContent = "Calling the gateway…";
+      added.innerHTML = "";
+      try {
+        const response = await fetch(`/api/tenants/${state.current}/run`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${meta.key}`,
+          },
+          body: JSON.stringify({
+            text: parsed.text || "",
+            mask_medications: maskMeds.checked,
+            question: question.value,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          reply.innerHTML = `<div class="denied"><strong>${response.status}</strong><p>${esc(data.detail || JSON.stringify(data))}</p></div>`;
+          return;
+        }
+        const findings = data.findings || [];
+        caught.innerHTML = highlight(data.raw_text || parsed.text || "", findings);
+        legend(findings);
+        document.getElementById("caught-hint").textContent =
+          `${findings.length} span${findings.length === 1 ? "" : "s"} · medications ${data.mask_medications ? "masked" : "kept"} · stored without the original values`;
+        const payload = data.model_payload || {};
+        sent.textContent = JSON.stringify(payload.messages || payload, null, 2);
+        const source = (payload.source || "unknown").replaceAll("_", " ");
+        document.getElementById("sent-hint").textContent = payload.source === "litellm_pre_api_capture"
+          ? "Captured from the proxy after the pre-call guardrail."
+          : payload.source === "presidio_gateway_replay"
+            ? "Same Presidio service the proxy uses. The proxy did not return a post-guardrail capture."
+            : `Source: ${source}`;
+        const extra = data.gateway_added_placeholders || [];
+        added.innerHTML = extra.length
+          ? `<div class="banner">Gateway added ${esc(extra.join(", "))} before the model call. Ingest did not.</div>`
+          : "";
+        if (data.reply) {
+          reply.textContent = data.reply;
+          document.getElementById("reply-hint").textContent =
+            `Retrieval: ${(data.retrieval && data.retrieval.mode) || "n/a"}`;
+        } else {
+          reply.textContent = data.error || "The gateway returned no reply.";
+        }
+        renderLog(data, data.key_alias, data.key_redacted);
+      } finally {
+        document.getElementById("run").disabled = false;
+      }
+    }
+
+    async function cross() {
+      const clinicA = tenant("clinic-a");
+      if (!clinicA || !clinicA.key) {
+        reply.textContent = "Clinic A’s key is not loaded.";
+        return;
+      }
+      const response = await fetch("/api/tenants/clinic-b/query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${clinicA.key}`,
+        },
+        body: JSON.stringify({ question: "What is in MARKER-CLINICB?" }),
+      });
+      const data = await response.json();
+      reply.innerHTML = `<div class="denied"><strong>${response.status}</strong><p>${esc(data.detail || JSON.stringify(data))}</p><p>Clinic A’s key asked Clinic B’s store. The gateway key is bound to one tenant, so this stops before any note is read.</p></div>`;
+      log.innerHTML = `<b>${esc(clinicA.alias)}</b> ${esc(clinicA.key_redacted)} · query tenant <b>clinic-b</b> · HTTP ${response.status}`;
+    }
+
+    document.getElementById("tab-a").onclick = () => showSample("clinic-a");
+    document.getElementById("tab-b").onclick = () => showSample("clinic-b");
+    document.getElementById("run").onclick = run;
+    document.getElementById("cross").onclick = cross;
+    document.getElementById("gap").onclick = () => {
+      if (!state.gap) return;
+      state.current = state.gap.tenant_id || "clinic-a";
+      document.getElementById("tab-a").classList.add("active");
+      document.getElementById("tab-b").classList.remove("active");
+      maskMeds.checked = true;
+      raw.value = JSON.stringify(state.gap, null, 2);
+    };
+
+    fetch("/api/bootstrap").then((res) => res.json()).then((data) => {
+      state.tenants = data.tenants || [];
+      state.samples = data.samples || {};
+      state.gap = data.gateway_gap;
+      showSample("clinic-a");
+      if (data.health && data.health.litellm !== "ok") {
+        log.textContent = "LiteLLM is not ready. Panels 1–2 still run once a key exists. " + (data.health.detail || "");
+      }
+    });
+  </script>
+</body>
+</html>

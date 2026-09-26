@@ -1,0 +1,24 @@
+# One medication name per line. The scrubber compiles these into a Presidio recognizer.
+# Names come from Synthea medication descriptions, plus a few additions.
+# HCTZ is omitted on purpose so the abbreviation shows up as a measured miss.
+hydrochlorothiazide
+ferrous sulfate
+hydrocortisone
+levothyroxine
+atorvastatin
+azithromycin
+amoxicillin
+fluticasone
+sumatriptan
+amlodipine
+cetirizine
+fluoxetine
+gabapentin
+lisinopril
+omeprazole
+sertraline
+albuterol
+ibuprofen
+metformin
+losartan
+naproxen

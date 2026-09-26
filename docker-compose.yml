@@ -1,0 +1,128 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: litellm
+      POSTGRES_USER: llmproxy
+      POSTGRES_PASSWORD: dbpassword9090
+    volumes:
+      - litellm_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llmproxy -d litellm"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  presidio-analyzer:
+    image: ghcr.io/data-privacy-stack/presidio-analyzer:latest
+    ports:
+      - "5002:3000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  presidio-anonymizer:
+    image: ghcr.io/data-privacy-stack/presidio-anonymizer:latest
+    ports:
+      - "5001:3000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    volumes:
+      - ollama:/root/.ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama serve &
+        pid=$$!
+        trap 'kill $$pid' TERM INT
+        until ollama list >/dev/null 2>&1; do sleep 1; done
+        ollama pull qwen2.5:0.5b
+        ollama pull all-minilm
+        wait $$pid
+    healthcheck:
+      test: ["CMD-SHELL", "ollama show qwen2.5:0.5b >/dev/null && ollama show all-minilm >/dev/null"]
+      interval: 10s
+      timeout: 15s
+      retries: 60
+      start_period: 15s
+
+  capture-init:
+    image: busybox:1.36
+    volumes:
+      - ./data/gateway-captures:/captures
+    command: ["sh", "-c", "mkdir -p /captures && chmod 777 /captures"]
+
+  litellm:
+    build: ./litellm
+    ports:
+      - "4000:4000"
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-phi-demo-master}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:-sk-phi-demo-salt}
+      DATABASE_URL: postgresql://llmproxy:dbpassword9090@db:5432/litellm
+      STORE_MODEL_IN_DB: "False"
+      CHAT_MODEL: ${CHAT_MODEL:-openai/qwen2.5:0.5b}
+      EMBED_MODEL: ${EMBED_MODEL:-openai/all-minilm}
+      CHAT_API_BASE: http://ollama:11434/v1
+      CHAT_API_KEY: ollama
+      PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000/
+      PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000/
+      PHI_CAPTURE_DIR: /captures
+    volumes:
+      - ./data/gateway-captures:/captures
+    depends_on:
+      db:
+        condition: service_healthy
+      presidio-analyzer:
+        condition: service_healthy
+      presidio-anonymizer:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      capture-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness')"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      LITELLM_BASE_URL: http://litellm:4000
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-phi-demo-master}
+      DATA_DIR: /data
+      PHI_CAPTURE_DIR: /data/gateway-captures
+      PRESIDIO_ANALYZER_API_BASE: http://presidio-analyzer:3000
+      PRESIDIO_ANONYMIZER_API_BASE: http://presidio-anonymizer:3000
+    volumes:
+      - ./data:/data
+    depends_on:
+      litellm:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  litellm_pg:
+  ollama:
