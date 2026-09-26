@@ -73,6 +73,32 @@ def _mrn_recognizer() -> PatternRecognizer:
     )
 
 
+def _us_street_address_recognizer() -> PatternRecognizer:
+    """Catch common US street address patterns that spaCy's NER misses.
+
+    Matches patterns like: 123 Main St, 45 Oak Avenue, 7 Pine Street
+    Scored at 0.92 to beat erroneous NER tags (e.g. '77 Grove' tagged DATE_TIME).
+    """
+    suffixes = (
+        r"(?:St(?:reet)?|Ave(?:nue)?|Rd|Road|Dr(?:ive)?|Ln|Lane|Blvd|Boulevard|"
+        r"Ct|Court|Way|Pl(?:ace)?|Cir(?:cle)?|Ter(?:race)?|Pkwy|Parkway|"
+        r"Hwy|Highway|Sq|Square|Trl|Trail|Row|Pass|Loop|Aly|Alley)"
+    )
+    return PatternRecognizer(
+        supported_entity="US_STREET_ADDRESS",
+        name="USStreetAddressRecognizer",
+        supported_language="en",
+        patterns=[
+            Pattern(
+                name="numbered_street",
+                regex=rf"\b\d{{1,5}}\s+[A-Z][a-zA-Z]{{1,20}}(?:\s+[A-Z][a-zA-Z]{{1,15}})?\s+{suffixes}\b",
+                score=0.92,
+            ),
+        ],
+        global_regex_flags=re.IGNORECASE,
+    )
+
+
 def _phone_555_recognizer() -> PatternRecognizer:
     # Presidio's phone recognizer uses the phonenumbers library and often skips
     # the fictional 555 prefix, especially when the separators vary.
@@ -96,7 +122,7 @@ def _medication_recognizer(names: list[str]) -> PatternRecognizer | None:
         supported_entity="MEDICATION",
         name="SyntheaMedicationRecognizer",
         supported_language="en",
-        patterns=[Pattern(name="synthea_med", regex=pattern, score=0.85)],
+        patterns=[Pattern(name="synthea_med", regex=pattern, score=0.90)],
         global_regex_flags=re.IGNORECASE,
     )
 
@@ -144,6 +170,7 @@ class Scrubber:
         registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["en"])
         registry.add_recognizer(_mrn_recognizer())
         registry.add_recognizer(_phone_555_recognizer())
+        registry.add_recognizer(_us_street_address_recognizer())
         medication = _medication_recognizer(load_medication_names(self.lexicon_path))
         if medication is not None:
             registry.add_recognizer(medication)

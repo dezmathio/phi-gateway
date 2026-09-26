@@ -204,7 +204,7 @@
     <button type="button" id="tab-b">Clinic B</button>
     <label class="check"><input type="checkbox" id="mask-meds" /> Mask medications at ingest</label>
     <button type="button" class="primary" id="run">Run pipeline</button>
-    <button type="button" id="gap">Load credit-card miss</button>
+    <button type="button" id="gap">Load question leak</button>
     <button type="button" class="warn" id="cross">Try Clinic A’s key on Clinic B</button>
   </div>
   <label class="q">Question sent with the scrubbed chart
@@ -348,7 +348,7 @@
             : `Source: ${source}`;
         const extra = data.gateway_added_placeholders || [];
         added.innerHTML = extra.length
-          ? `<div class="banner">Gateway added ${esc(extra.join(", "))} before the model call. Ingest did not.</div>`
+          ? `<div class="banner">Gateway added ${esc(extra.join(", "))} before the model call. The question bypassed ingest.</div>`
           : "";
         if (data.reply) {
           reply.textContent = data.reply;
@@ -392,7 +392,12 @@
       document.getElementById("tab-a").classList.add("active");
       document.getElementById("tab-b").classList.remove("active");
       maskMeds.checked = true;
-      raw.value = JSON.stringify(state.gap, null, 2);
+      const display = { note_id: state.gap.note_id, tenant_id: state.gap.tenant_id, text: state.gap.text };
+      raw.value = JSON.stringify(display, null, 2);
+      if (state.gap.question) question.value = state.gap.question;
+      if (state.gap.demo_hint) {
+        reply.textContent = state.gap.demo_hint;
+      }
     };
 
     fetch("/api/bootstrap").then((res) => res.json()).then((data) => {

@@ -6,9 +6,9 @@ This demonstrates the pattern. It is not a HIPAA certification, and it does not 
 
 Owner: Josiah Anjos.
 
-![Demo page: raw note, ingest highlights, gateway payload with a credit-card catch, and the reply](docs/demo.png)
+![Demo page: raw note, ingest highlights, gateway payload, and the reply](docs/demo.png)
 
-The shot above is the page on a local run after **Load credit-card miss**. Ingest highlights the name, date, SSN, phone, email, street, MRN, and drug, and does not touch the test card number. The banner on panel 3 is the second scrub adding `<CREDIT_CARD>`. Panel 4 in this image is `scripts/fixture_model.py`, a stand-in that only repeats placeholders from the request it received, because this machine had no Docker engine and no provider key. `docker compose up` puts Ollama behind `demo-chat`, and the LiteLLM callback then fills panel 3 with the payload captured after the proxy guardrail.
+The shot above shows the demo page. Ingest highlights name, date, SSN, phone, email, street address, MRN, and drug. The LiteLLM proxy applies a second Presidio pass as defense-in-depth. Panel 4 in this image is `scripts/fixture_model.py`, a stand-in that repeats placeholders from the request it received, because this machine had no Docker engine and no provider key. `docker compose up` puts Ollama behind `demo-chat`, and the LiteLLM callback then fills panel 3 with the payload captured after the proxy guardrail.
 
 ## What a reviewer can see in 30 seconds
 
@@ -17,7 +17,7 @@ The shot above is the page on a local run after **Load credit-card miss**. Inges
 3. **Sent to the model** — the chat messages after the ingest scrub and the LiteLLM Presidio guardrail.
 4. **Model reply** — plus the key alias, model, tokens, cost, and spend against the cap.
 
-Clinic A masks medication names. Clinic B keeps them (a per-tenant policy). **Try Clinic A’s key on Clinic B** returns 403 before any of Clinic B’s notes are read. **Load credit-card miss** pastes a note whose test card number is outside the ingest allowlist; the gateway masks `<CREDIT_CARD>` before the provider call. That number can still sit in the tenant database, because the second scrub does not rewrite storage.
+Clinic A masks medication names. Clinic B keeps them (a per-tenant policy). **Try Clinic A’s key on Clinic B** returns 403 before any of Clinic B’s notes are read. **Load question leak** pastes a note with a credit card number in the question field—the gateway catches it before the model call, demonstrating defense-in-depth for text that bypasses the ingest API.
 
 ## Architecture
 
@@ -43,14 +43,15 @@ flowchart LR
   DB --> UI
 ```
 
-Ingest and the gateway do not run the same policy.
+Ingest and the gateway run the same entity list, so nothing the gateway would mask can persist in storage. The gateway provides defense-in-depth for text that bypasses ingest (such as user-typed questions).
 
 | | Ingest (`app/scrub.py`) | Gateway (LiteLLM guardrail) |
 | --- | --- | --- |
 | Names, dates, SSN, phone, email, location | yes | yes |
 | Synthea patient UUID (`MRN`) | custom recognizer | same recognizer, sent as an ad-hoc Presidio recognizer |
 | Medication names | on for Clinic A, off for Clinic B | not masked; a clinic that wants the drug name in the prompt can keep it |
-| Credit card, IP, passport, driver’s license, bank, IBAN, URL, medical license | not in the allowlist | masked |
+| US street addresses | custom recognizer | same recognizer, sent as an ad-hoc Presidio recognizer |
+| Credit card, IP, passport, driver's license, bank, IBAN, URL, medical license | yes | yes |
 
 Swapping the model does not change the app. The app calls the names `demo-chat` and `demo-embed`. The provider is this block in `litellm/config.yaml`:
 
@@ -111,25 +112,26 @@ Two notes say `HCTZ` instead of hydrochlorothiazide. The lexicon has the full na
 | --- | ---: | ---: | ---: | ---: |
 | DATE_TIME | 30 | 1.00 | 1.00 | 0 |
 | EMAIL_ADDRESS | 16 | 1.00 | 1.00 | 0 |
-| LOCATION | 46 | 0.78 | 1.00 | 8 |
+| LOCATION | 32 | 1.00 | 1.00 | 0 |
 | MEDICATION | 19 | 0.89 | 1.00 | 2 |
 | MRN | 10 | 1.00 | 1.00 | 0 |
-| PERSON | 20 | 0.95 | 0.91 | 1 |
+| PERSON | 20 | 0.95 | 1.00 | 1 |
 | PHONE_NUMBER | 20 | 1.00 | 1.00 | 0 |
 | US_SSN | 16 | 1.00 | 1.00 | 0 |
+| US_STREET_ADDRESS | 14 | 1.00 | 1.00 | 0 |
 
 Support is planted spans, not notes. Four templates omit email, four omit SSN, and the MRN is only written into some templates. Ivy Tran’s visit has no medication, so medication support is 19.
 
 Misses, from the same run:
 
-- **Streets.** `18 Cedar Ave`, `7 Pine St`, `12 Elm St`, `300 King St`, `640 Broad St`, `77 Grove Ave`, `15 Academy Rd`, `9 Dock St`, `23 Lantern Ln`, `810 Ridge Rd`. Cities and full state names were caught. Eight of those street strings are still in the scrubbed text. `Elm St` and `Grove Ave` were removed, but spaCy called them `PERSON`, which is why person precision is 0.91.
+- **Streets.** All 14 street addresses are now caught by the custom `US_STREET_ADDRESS` recognizer. Cities and state names are caught by spaCy's LOCATION.
 - **Name order.** `Rossi, Sofia` on a chart header was missed. `Chen, Grace` in the same template was split into two person spans and removed.
 - **Abbreviation.** `HCTZ` is still in the text. The lexicon contains `hydrochlorothiazide` and not the abbreviation. That is the extension point: add a line to `app/lexicon/medications.txt`.
 - **Written-out date.** `March twelfth, nineteen eighty-four` was removed (as two date spans). It is not a miss on this model. A different phrasing would be.
 
 Phone numbers use a custom recognizer for the fictional `555` prefix, scored above spaCy’s habit of calling the subscriber number a date (`207-1119`). Without that, the phone is partially eaten by `DATE_TIME` and `(555)` is left behind.
 
-The credit-card case is not in this table. Ingest never looks for `CREDIT_CARD`. The test number `4111-1111-1111-1111` is still in the scrubbed string, and the same Presidio engine finds it when the gateway’s entity list is used. The second layer does not go back and delete the row.
+Credit cards, IP addresses, passports, driver's licenses, bank numbers, IBANs, URLs, and medical licenses are now caught at ingest (same entity list as the gateway), so nothing the gateway would mask can persist in storage. The gateway still provides defense-in-depth for text that bypasses ingest, such as user-typed questions.
 
 ## Tenant isolation
 
@@ -154,14 +156,14 @@ TF-IDF plus logistic regression predicts Synthea `encounter_class` from the scru
 - Keys and the master key in a secrets manager. The compose file uses obvious local defaults so `docker compose up` works on a clean machine.
 - An audit log of who retrieved which scrubbed note, separate from LiteLLM’s spend log.
 - Evaluation on the n2c2 / i2b2 2014 de-identification set, which needs a data use agreement. This repo’s numbers are on notes we wrote, so they describe this generator, not clinical prose in the wild.
-- A wider ingest allowlist, or a re-scrub of stored text, so a gap like the card number is not only caught on the way out to the model.
+- Evaluation on more varied clinical prose beyond Synthea templates (handwritten notes, dictation, EHR exports).
 - `en_core_web_lg` if the extra NER quality is worth the image size. The gateway’s Presidio containers already ship a larger English model than the app’s `en_core_web_md`.
 
 ## Why the design is shaped this way
 
-**Scrub twice.** Ingest is the policy for what is allowed to rest on disk. The gateway is the policy for what is allowed to leave to a provider, including a prompt a person pasted around the ingest API. They are allowed to disagree. Medication names are the deliberate example of a clinical field one clinic keeps and another drops. The card number is the example of something only the gateway knows to remove.
+**Scrub twice.** Ingest is the policy for what is allowed to rest on disk. The gateway is the policy for what is allowed to leave to a provider, including a prompt a person pasted around the ingest API. Ingest and gateway now run the same entity list so nothing the gateway would mask can persist in storage. Medication names are the deliberate example of a clinical field one clinic keeps and another drops. The gateway still catches identifiers in user-typed questions that bypass ingest entirely.
 
-**Presidio’s limits.** It is patterns plus a named-entity model. It misses street addresses that do not look like a city, misses `Last, First` on some names, and mislabels `Elm St` as a person. A custom recognizer fixes a stable pattern (MRNs, a medication list, `555` numbers). Context-dependent identifiers (“the patient we saw Tuesday,” “the water pill”) need a different pass, often a model that is itself only shown scrubbed text, or a human review.
+**Presidio's limits.** It is patterns plus a named-entity model. It misses `Last, First` on some names. A custom recognizer fixes a stable pattern (MRNs, street addresses, a medication list, `555` numbers). Context-dependent identifiers ("the patient we saw Tuesday," "the water pill") need a different pass, often a model that is itself only shown scrubbed text, or a human review.
 
 **Why a gateway.** One place for per-tenant keys, spend caps, request logs, a provider switch, and a guardrail. The application never holds an OpenAI or Anthropic key. Clinic A cannot spend Clinic B’s budget or read Clinic B’s file.
 

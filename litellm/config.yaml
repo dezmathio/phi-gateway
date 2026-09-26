@@ -66,3 +66,4 @@ guardrails:
         IBAN_CODE: MASK
         URL: MASK
         MEDICAL_LICENSE: MASK
+        US_STREET_ADDRESS: MASK

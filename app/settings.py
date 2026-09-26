@@ -21,8 +21,8 @@ EMBED_MODEL = os.environ.get("EMBED_MODEL_NAME", "demo-embed")
 PRESIDIO_ANALYZER_API_BASE = os.environ.get("PRESIDIO_ANALYZER_API_BASE", "http://127.0.0.1:5002").rstrip("/") + "/"
 PRESIDIO_ANONYMIZER_API_BASE = os.environ.get("PRESIDIO_ANONYMIZER_API_BASE", "http://127.0.0.1:5002").rstrip("/") + "/"
 
-# Ingest allowlist. Credit cards are intentionally absent: that gap is what the
-# gateway's wider Presidio config is there to catch. MRN and MEDICATION are custom.
+# Ingest entity list. Aligned with the gateway list so nothing the gateway would
+# mask can persist in storage. MRN, MEDICATION, and US_STREET_ADDRESS are custom.
 INGEST_ENTITIES = [
     "PERSON",
     "DATE_TIME",
@@ -31,10 +31,21 @@ INGEST_ENTITIES = [
     "EMAIL_ADDRESS",
     "LOCATION",
     "MRN",
+    "CREDIT_CARD",
+    "IP_ADDRESS",
+    "US_PASSPORT",
+    "US_DRIVER_LICENSE",
+    "US_BANK_NUMBER",
+    "IBAN_CODE",
+    "URL",
+    "MEDICAL_LICENSE",
+    "US_STREET_ADDRESS",
 ]
 
-# Superset sent to the gateway analyzer. MEDICATION stays an ingest policy, not a
-# gateway one, so a clinic can keep drug names in the prompt on purpose.
+# Gateway entity list. Same as ingest, so both layers catch the same identifiers.
+# MEDICATION stays an ingest-only policy: a clinic can keep drug names in the prompt.
+# The gateway demonstrates defense-in-depth by catching identifiers in user questions
+# or text that bypasses the ingest API entirely.
 GATEWAY_ENTITIES = [
     "PERSON",
     "DATE_TIME",
@@ -51,6 +62,7 @@ GATEWAY_ENTITIES = [
     "IBAN_CODE",
     "URL",
     "MEDICAL_LICENSE",
+    "US_STREET_ADDRESS",
 ]
 
 TENANTS: dict[str, dict] = {
